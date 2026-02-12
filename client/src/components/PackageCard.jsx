@@ -21,7 +21,7 @@ const categoryStyles = {
   },
 };
 
-const PackageCard = ({ package: pkg }) => {
+const PackageCard = ({ pkg }) => {
   const navigate = useNavigate();
 
   const style = categoryStyles[pkg.category] || categoryStyles.SoundcloudBoost;

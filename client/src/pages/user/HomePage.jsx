@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { getPackages } from '../../services/api';
 import PackageCard from '../../components/PackageCard';
 import toast from 'react-hot-toast';
@@ -7,15 +7,21 @@ import toast from 'react-hot-toast';
 const CATEGORIES = [
   { key: '', label: 'All' },
   { key: 'SoundcloudBoost', label: 'SoundCloud Boost' },
-  { key: 'Graphic Design', label: 'Graphic Design' },
-  { key: 'Video Editing', label: 'Video Editing' },
+  { key: 'GraphicDesign', label: 'Graphic Design' },
+  { key: 'VideoEditing', label: 'Video Editing' },
 ];
 
 export default function HomePage() {
   const [packages, setPackages] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeCategory, setActiveCategory] = useState('');
+  const [searchParams] = useSearchParams();
+  const urlCategory = searchParams.get('category') || '';
+  const [activeCategory, setActiveCategory] = useState(urlCategory);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    setActiveCategory(urlCategory);
+  }, [urlCategory]);
 
   useEffect(() => {
     fetchPackages(activeCategory);
