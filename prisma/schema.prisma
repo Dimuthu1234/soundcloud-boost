@@ -1,0 +1,61 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Admin {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Package {
+  id           String   @id @default(uuid())
+  title        String
+  description  String
+  price        Float
+  deliveryDays Int
+  category     String   // SoundcloudBoost, GraphicDesign, VideoEditing
+  image        String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  orders       Order[]
+}
+
+model Order {
+  id             String   @id @default(uuid())
+  customerEmail  String
+  customerName   String?
+  soundcloudUrl  String
+  quantity       Int      @default(1)
+  totalPrice     Float
+  status         String   @default("pending") // pending -> paid -> completed
+  packageId      String
+  package        Package  @relation(fields: [packageId], references: [id])
+  payment        Payment?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model Payment {
+  id              String   @id @default(uuid())
+  orderId         String   @unique
+  order           Order    @relation(fields: [orderId], references: [id])
+  paypalOrderId   String?
+  paypalPayerId   String?
+  paypalCaptureId String?
+  amount          Float
+  currency        String   @default("USD")
+  status          String   @default("pending") // pending, completed, failed, refunded
+  paidAt          DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}

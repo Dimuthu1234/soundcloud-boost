@@ -1,0 +1,19 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #ff5500;
+  --color-primary-dark: #e04d00;
+  --color-primary-light: #ff8800;
+  --color-dark: #111827;
+  --color-darker: #0a0f1a;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.gradient-bg {
+  background: linear-gradient(135deg, #ff5500 0%, #ff8800 100%);
+}
