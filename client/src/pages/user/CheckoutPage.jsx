@@ -66,8 +66,8 @@ export default function CheckoutPage() {
     try {
       const { data } = await createOrder({
         packageId,
-        email: form.email,
-        name: form.name,
+        customerEmail: form.email,
+        customerName: form.name,
         soundcloudUrl: form.soundcloudUrl,
         quantity: form.quantity,
       });
