@@ -16,7 +16,8 @@ const createPayPalOrder = async (amount, currency = 'USD', description = 'SoundC
     ],
     application_context: {
       brand_name: 'SoundCloudBoost',
-      landing_page: 'NO_PREFERENCE',
+      landing_page: 'LOGIN',
+      shipping_preference: 'NO_SHIPPING',
       user_action: 'PAY_NOW',
       return_url: `${process.env.FRONTEND_URL}/payment/success`,
       cancel_url: `${process.env.FRONTEND_URL}/payment/cancel`,
