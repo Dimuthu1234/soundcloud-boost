@@ -101,11 +101,15 @@ async function main() {
     },
   ];
 
-  for (const pkg of packages) {
-    await prisma.package.create({ data: pkg });
+  const existingCount = await prisma.package.count();
+  if (existingCount === 0) {
+    for (const pkg of packages) {
+      await prisma.package.create({ data: pkg });
+    }
+    console.log(`${packages.length} packages created.`);
+  } else {
+    console.log(`Skipping seed: ${existingCount} packages already exist.`);
   }
-  console.log(`${packages.length} packages created.`);
-
   console.log('Seeding completed!');
 }
 
