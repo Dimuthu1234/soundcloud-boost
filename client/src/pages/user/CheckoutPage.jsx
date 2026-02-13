@@ -74,7 +74,7 @@ export default function CheckoutPage() {
 
       const order = data.order || data;
       setOrderId(order.id);
-      setPaypalOrderId(order.paypalOrderId);
+      setPaypalOrderId(data.paypal?.orderId || order.paypalOrderId);
       setShowPaypal(true);
       toast.success('Order created! Complete your payment below.');
     } catch (err) {
