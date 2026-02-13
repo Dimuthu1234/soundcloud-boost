@@ -1,10 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getPackageById, createOrder, capturePayment } from '../../services/api';
-import { PayPalScriptProvider, PayPalButtons } from '@paypal/react-paypal-js';
+import { getPackageById, createOrder } from '../../services/api';
 import toast from 'react-hot-toast';
-
-const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID;
 
 export default function CheckoutPage() {
   const { packageId } = useParams();
@@ -13,9 +10,6 @@ export default function CheckoutPage() {
   const [pkg, setPkg] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [showPaypal, setShowPaypal] = useState(false);
-  const [orderId, setOrderId] = useState(null);
-  const [paypalOrderId, setPaypalOrderId] = useState(null);
 
   const [form, setForm] = useState({
     email: '',
@@ -73,27 +67,22 @@ export default function CheckoutPage() {
       });
 
       const order = data.order || data;
-      setOrderId(order.id);
-      setPaypalOrderId(data.paypal?.orderId || order.paypalOrderId);
-      setShowPaypal(true);
-      toast.success('Order created! Complete your payment below.');
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to create order');
-    } finally {
-      setSubmitting(false);
-    }
-  };
+      const approvalUrl = data.paypal?.approvalUrl;
 
-  const handlePaypalApprove = async (data) => {
-    try {
-      await capturePayment({
-        orderId,
-        paypalOrderId: data.orderID,
-      });
-      toast.success('Payment successful!');
-      navigate(`/payment/success?orderId=${orderId}`);
+      if (!approvalUrl) {
+        toast.error('Failed to get PayPal payment URL');
+        setSubmitting(false);
+        return;
+      }
+
+      // Save order ID for after PayPal redirect
+      localStorage.setItem('pendingOrderId', order.id);
+
+      // Redirect to PayPal for payment approval
+      window.location.href = approvalUrl;
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Payment capture failed');
+      toast.error(err.response?.data?.error || 'Failed to create order');
+      setSubmitting(false);
     }
   };
 
@@ -131,117 +120,83 @@ export default function CheckoutPage() {
             <div className="bg-dark rounded-2xl border border-gray-800 p-6 sm:p-8">
               <h2 className="text-xl font-semibold text-white mb-6">Order Details</h2>
 
-              {!showPaypal ? (
-                <form onSubmit={handleSubmit} className="space-y-5">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
-                      Email <span className="text-primary">*</span>
-                    </label>
-                    <input
-                      type="email"
-                      name="email"
-                      value={form.email}
-                      onChange={handleChange}
-                      required
-                      placeholder="your@email.com"
-                      className="w-full px-4 py-3 rounded-xl bg-darker border border-gray-700 text-white placeholder-gray-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
-                      Name
-                    </label>
-                    <input
-                      type="text"
-                      name="name"
-                      value={form.name}
-                      onChange={handleChange}
-                      placeholder="Your name"
-                      className="w-full px-4 py-3 rounded-xl bg-darker border border-gray-700 text-white placeholder-gray-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
-                      SoundCloud URL <span className="text-primary">*</span>
-                    </label>
-                    <input
-                      type="url"
-                      name="soundcloudUrl"
-                      value={form.soundcloudUrl}
-                      onChange={handleChange}
-                      required
-                      placeholder="https://soundcloud.com/your-profile"
-                      className="w-full px-4 py-3 rounded-xl bg-darker border border-gray-700 text-white placeholder-gray-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
-                      Quantity
-                    </label>
-                    <input
-                      type="number"
-                      name="quantity"
-                      value={form.quantity}
-                      onChange={handleChange}
-                      min="1"
-                      className="w-full px-4 py-3 rounded-xl bg-darker border border-gray-700 text-white placeholder-gray-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
-                    />
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={submitting}
-                    className="w-full py-3.5 rounded-xl text-white font-semibold bg-gradient-to-r from-primary to-primary-light hover:from-primary-dark hover:to-primary shadow-lg shadow-primary/25 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                  >
-                    {submitting ? (
-                      <span className="inline-flex items-center gap-2">
-                        <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
-                        </svg>
-                        Processing...
-                      </span>
-                    ) : (
-                      `Proceed to Payment - $${totalPrice}`
-                    )}
-                  </button>
-                </form>
-              ) : (
-                <div className="space-y-6">
-                  <div className="bg-darker rounded-xl border border-gray-700 p-4">
-                    <p className="text-sm text-gray-400 mb-1">Total to pay</p>
-                    <p className="text-2xl font-bold text-primary">${totalPrice}</p>
-                  </div>
-
-                  <PayPalScriptProvider
-                    options={{
-                      'client-id': PAYPAL_CLIENT_ID,
-                      currency: 'USD',
-                    }}
-                  >
-                    <PayPalButtons
-                      style={{
-                        color: 'gold',
-                        shape: 'rect',
-                        label: 'paypal',
-                        layout: 'vertical',
-                      }}
-                      createOrder={() => paypalOrderId}
-                      onApprove={handlePaypalApprove}
-                      onError={(err) => {
-                        console.error('PayPal error:', err);
-                        toast.error('PayPal payment failed. Please try again.');
-                      }}
-                      onCancel={() => {
-                        toast.error('Payment was cancelled.');
-                      }}
-                    />
-                  </PayPalScriptProvider>
+              <form onSubmit={handleSubmit} className="space-y-5">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Email <span className="text-primary">*</span>
+                  </label>
+                  <input
+                    type="email"
+                    name="email"
+                    value={form.email}
+                    onChange={handleChange}
+                    required
+                    placeholder="your@email.com"
+                    className="w-full px-4 py-3 rounded-xl bg-darker border border-gray-700 text-white placeholder-gray-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
+                  />
                 </div>
-              )}
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Name
+                  </label>
+                  <input
+                    type="text"
+                    name="name"
+                    value={form.name}
+                    onChange={handleChange}
+                    placeholder="Your name"
+                    className="w-full px-4 py-3 rounded-xl bg-darker border border-gray-700 text-white placeholder-gray-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    SoundCloud URL <span className="text-primary">*</span>
+                  </label>
+                  <input
+                    type="url"
+                    name="soundcloudUrl"
+                    value={form.soundcloudUrl}
+                    onChange={handleChange}
+                    required
+                    placeholder="https://soundcloud.com/your-profile"
+                    className="w-full px-4 py-3 rounded-xl bg-darker border border-gray-700 text-white placeholder-gray-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Quantity
+                  </label>
+                  <input
+                    type="number"
+                    name="quantity"
+                    value={form.quantity}
+                    onChange={handleChange}
+                    min="1"
+                    className="w-full px-4 py-3 rounded-xl bg-darker border border-gray-700 text-white placeholder-gray-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="w-full py-3.5 rounded-xl text-white font-semibold bg-gradient-to-r from-primary to-primary-light hover:from-primary-dark hover:to-primary shadow-lg shadow-primary/25 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  {submitting ? (
+                    <span className="inline-flex items-center gap-2">
+                      <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                      </svg>
+                      Redirecting to PayPal...
+                    </span>
+                  ) : (
+                    `Proceed to Payment - $${totalPrice}`
+                  )}
+                </button>
+              </form>
             </div>
           </div>
 
