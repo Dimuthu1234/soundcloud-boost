@@ -40,17 +40,12 @@ const createPayPalOrder = async (amount, currency = 'USD', description = 'SoundC
             description,
           },
         ],
-        payment_source: {
-          paypal: {
-            experience_context: {
-              brand_name: 'SoundCloudBoost',
-              landing_page: 'LOGIN',
-              shipping_preference: 'NO_SHIPPING',
-              user_action: 'PAY_NOW',
-              return_url: `${process.env.FRONTEND_URL}/payment/success`,
-              cancel_url: `${process.env.FRONTEND_URL}/payment/cancel`,
-            },
-          },
+        application_context: {
+          brand_name: 'SoundCloudBoost',
+          shipping_preference: 'NO_SHIPPING',
+          user_action: 'PAY_NOW',
+          return_url: `${process.env.FRONTEND_URL}/payment/success`,
+          cancel_url: `${process.env.FRONTEND_URL}/payment/cancel`,
         },
       },
       {
@@ -61,7 +56,7 @@ const createPayPalOrder = async (amount, currency = 'USD', description = 'SoundC
       }
     );
 
-    const approvalUrl = data.links?.find((link) => link.rel === 'payer-action')?.href;
+    const approvalUrl = data.links?.find((link) => link.rel === 'approve')?.href;
 
     return {
       success: true,
